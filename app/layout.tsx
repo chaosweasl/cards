@@ -7,6 +7,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <title>Cards</title>
+        <link rel="icon" href="/cards.png" />
+      </head>
       <body>{children}</body>
     </html>
   );
