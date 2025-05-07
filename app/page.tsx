@@ -1,7 +1,8 @@
 import React from "react";
 import SignInButton from "./components/auth/sign-in-button";
-import { auth } from "@/auth";
 import SignOutButton from "./components/auth/sign-out-button";
+import UserData from "./components/user-data";
+import { auth } from "@/auth";
 
 export default async function Home() {
   const session = await auth();
@@ -10,10 +11,10 @@ export default async function Home() {
     <div>
       <div>
         {session ? (
-          <>
-            {" "}
+          <div className="flex flex-row gap-5">
+            <UserData />
             <p>Hello {session.user?.name}</p> <SignOutButton />{" "}
-          </>
+          </div>
         ) : (
           <SignInButton />
         )}
