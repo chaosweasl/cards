@@ -1,0 +1,9 @@
+- next.js 
+- nextauth (for OAuth)
+- postgreSQL (for database)
+- prisma (adapter)
+- stack auth (For secure auth)
+- vercel (for deployment)
+- shadCN UI / daisyUI (or both)
+- neon (for cloud postgre hosting)
+- lucide (for icons)
