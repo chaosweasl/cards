@@ -6,7 +6,10 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
-  return NextResponse.redirect(new URL("/", request.url), {
+  // Get the origin from the request URL or use a default
+  const origin = request.headers.get("origin") || request.nextUrl.origin;
+
+  return NextResponse.redirect(`${origin}/`, {
     status: 302,
   });
 }

@@ -33,6 +33,9 @@ export default function Navbar() {
   }, [supabase.auth]);
 
   const handleSignOut = async () => {
+    // Sign out on client side first
+    await supabase.auth.signOut();
+    // Then call the server endpoint
     await fetch("/auth/signout", { method: "POST" });
     router.refresh();
   };
