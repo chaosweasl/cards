@@ -25,8 +25,8 @@ function Blackjack() {
         setCheckingProfile(true);
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, wins, losses")
-          .eq("id", user.id)
+          .select("user_id, wins, losses")
+          .eq("user_id", user.id)
           .single();
 
         console.log("Profile check result:", data, error);
@@ -36,7 +36,7 @@ function Blackjack() {
           console.log("Profile doesn't exist, creating one for user:", user.id);
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
-            .insert({ id: user.id, wins: 0, losses: 0 })
+            .insert({ user_id: user.id, wins: 0, losses: 0 })
             .select();
 
           console.log("New profile created:", newProfile, insertError);
@@ -66,7 +66,7 @@ function Blackjack() {
         const { data, error } = await supabase
           .from("profiles")
           .update({ wins: 0, losses: 0 })
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .select();
 
         console.log("Reset result:", data, error);
@@ -78,8 +78,8 @@ function Blackjack() {
         // First check if profile exists
         const { data: profileCheck, error: checkError } = await supabase
           .from("profiles")
-          .select("id, wins, losses")
-          .eq("id", user.id)
+          .select("user_id, wins, losses")
+          .eq("user_id", user.id)
           .single();
 
         console.log("Profile check before update:", profileCheck, checkError);
@@ -102,7 +102,7 @@ function Blackjack() {
             const { data: updateResult, error: updateError } = await supabase
               .from("profiles")
               .update(updateData)
-              .eq("id", user.id)
+              .eq("user_id", user.id)
               .select();
 
             console.log("Update result:", updateResult, updateError);
@@ -115,7 +115,7 @@ function Blackjack() {
           const { data: insertResult, error: insertError } = await supabase
             .from("profiles")
             .insert({
-              id: user.id,
+              user_id: user.id,
               wins: type === "win" ? 1 : 0,
               losses: type === "loss" ? 1 : 0,
             })
@@ -129,7 +129,7 @@ function Blackjack() {
       const { data: currentStats } = await supabase
         .from("profiles")
         .select("wins, losses")
-        .eq("id", user.id)
+        .eq("user_id", user.id)
         .single();
 
       console.log("Current stats after update:", currentStats);

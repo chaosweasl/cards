@@ -27,7 +27,7 @@ export default function Navbar() {
         const { data, error } = await supabase
           .from("profiles")
           .select("wins, losses")
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .single();
 
         console.log("Fetched stats data:", data);
@@ -57,7 +57,7 @@ export default function Navbar() {
         const { data, error } = await supabase
           .from("profiles")
           .select("wins, losses")
-          .eq("id", currentUser.id)
+          .eq("user_id", currentUser.id)
           .single();
 
         console.log("Auth change stats:", data);

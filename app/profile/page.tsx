@@ -35,7 +35,7 @@ export default function ProfilePage() {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", userId)
+      .eq("user_id", userId)
       .single();
 
     console.log("Profile data:", data);
@@ -50,7 +50,7 @@ export default function ProfilePage() {
         const { data: newProfile, error: insertError } = await supabase
           .from("profiles")
           .insert({
-            id: userId,
+            user_id: userId,
             wins: 0,
             losses: 0,
           })
@@ -87,7 +87,7 @@ export default function ProfilePage() {
         const { data, error } = await supabase
           .from("profiles")
           .update({ wins: 0, losses: 0 })
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .select();
 
         if (data && data.length > 0) {
@@ -107,7 +107,7 @@ export default function ProfilePage() {
         const { data, error } = await supabase
           .from("profiles")
           .update(newStats)
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .select();
 
         if (data && data.length > 0) {
