@@ -1,61 +1,30 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/app/_providers/AuthProvider";
 import { supabaseService } from "@/app/_lib/supabase-service";
-import { useRouter } from "next/navigation";
 import type { UserStats } from "@/app/_lib/supabase-service";
 
 export default function AdminPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [loading, setLoading] = useState(true); // Start with loading true
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [users, setUsers] = useState<UserStats[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
 
-  // Check if user is admin on mount or user change
+  // Fetch users on mount
   useEffect(() => {
-    const checkAdmin = async () => {
-      setLoading(true);
-
-      if (!user) {
-        // Not logged in
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Fetch from server-side API endpoint
-        const response = await fetch("/api/check-admin");
-        const data = await response.json();
-
-        if (data.isAdmin) {
-          setIsAdmin(true);
-          // Fetch users since we're admin
-          await fetchUsers();
-        } else {
-          setMessage("Unauthorized: Admin access only");
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        setMessage("Error checking authorization");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAdmin();
-  }, [user]);
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const data = await supabaseService.getAllUserStats();
       setUsers(data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
       setMessage("Failed to load users");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,56 +89,10 @@ export default function AdminPage() {
     }
   };
 
-  // If loading, show loading state
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto p-8">
-        <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  // If not logged in, prompt to log in
-  if (!user) {
-    return (
-      <div className="max-w-4xl mx-auto p-8">
-        <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-          <p>Please log in to access the admin panel</p>
-          <button
-            onClick={() => router.push("/")}
-            className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // If not admin, show unauthorized message
-  if (!isAdmin) {
-    return (
-      <div className="max-w-4xl mx-auto p-8">
-        <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <p>Unauthorized: Admin access only</p>
-          <button
-            onClick={() => router.push("/")}
-            className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Return Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // Admin panel UI
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
 
       {message && (
         <div className="mb-4 p-3 bg-blue-100 text-blue-800 rounded">
@@ -223,7 +146,7 @@ export default function AdminPage() {
 
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-2">User Stats</h2>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white rounded-lg shadow">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-100">
               <tr>
@@ -270,6 +193,20 @@ export default function AdminPage() {
                   </td>
                 </tr>
               ))}
+              {users.length === 0 && loading && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center">
+                    Loading user data...
+                  </td>
+                </tr>
+              )}
+              {users.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center">
+                    No users found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

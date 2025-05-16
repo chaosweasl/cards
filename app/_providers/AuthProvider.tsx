@@ -57,9 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             wins: 0,
             losses: 0,
           });
-
           if (success) {
-            setStats({ wins: 0, losses: 0 });
+            setStats({ wins: 0, losses: 0, user_id: userId });
           }
         } catch (err) {
           console.error("Error creating profile:", err);

@@ -14,17 +14,19 @@ export async function GET(request: NextRequest) {
     // Create a Supabase client for server-side use
     const supabase = await createClient();
 
-    // Get the current session
+    // Use getUser() instead of getSession() for authenticated data
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (error || !user) {
+      console.error("Authentication error:", error);
       return NextResponse.json({ isAdmin: false }, { status: 401 });
     }
 
     // Check if the current user is the admin
-    const isAdmin = session.user.id === adminUserId;
+    const isAdmin = user.id === adminUserId;
 
     return NextResponse.json({ isAdmin });
   } catch (error) {

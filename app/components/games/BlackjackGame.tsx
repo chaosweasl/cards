@@ -50,6 +50,24 @@ export default function BlackjackGame() {
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [dealingAnimation, setDealingAnimation] = useState(false);
   const [showTestControls, setShowTestControls] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    if (!user) return;
+
+    const checkAdminStatus = async () => {
+      try {
+        const response = await fetch("/api/check-admin");
+        const data = await response.json();
+        setIsAdmin(data.isAdmin);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   // Handle the dealer's turn after the player stands
   useEffect(() => {
@@ -213,23 +231,49 @@ export default function BlackjackGame() {
         const newPlayerCards = [...gameState.playerCards, data.cards[0]];
         const newPlayerScore = calculateScore(newPlayerCards);
 
-        let newGameStatus: GameState["gameStatus"] = "player_turn";
-        let newMessage = "Your turn. Hit or Stand?";
-
+        // Check if player busts or gets 21
         if (newPlayerScore > 21) {
-          handleGameOutcome("player_bust", "Bust! You lose.");
+          // Player busts - show total but allow dealer to play
+          setGameState((prev) => ({
+            ...prev,
+            playerCards: newPlayerCards,
+            playerScore: newPlayerScore,
+            loading: false,
+            message: `You bust with ${newPlayerScore}! Let's see what the dealer gets...`,
+            gameStatus: "dealer_turn",
+            revealDealerCard: true,
+          }));
         } else if (newPlayerScore === 21) {
-          newMessage = "You have 21! Press Stand to see if you win.";
-        }
+          // Player has 21 - automatically stand
+          setGameState((prev) => ({
+            ...prev,
+            playerCards: newPlayerCards,
+            playerScore: newPlayerScore,
+            loading: false,
+            message: "You have 21! Dealer's turn...",
+          }));
 
-        setGameState((prev) => ({
-          ...prev,
-          playerCards: newPlayerCards,
-          playerScore: newPlayerScore,
-          gameStatus: newGameStatus,
-          loading: false,
-          message: newMessage,
-        }));
+          // Short delay before moving to dealer's turn
+          setTimeout(() => {
+            // Move to dealer's turn
+            setGameState((prev) => ({
+              ...prev,
+              gameStatus: "dealer_turn",
+              revealDealerCard: true,
+              message: "Dealer's turn...",
+            }));
+          }, 1500);
+        } else {
+          // Normal case - continue player turn
+          setGameState((prev) => ({
+            ...prev,
+            playerCards: newPlayerCards,
+            playerScore: newPlayerScore,
+            gameStatus: "player_turn",
+            loading: false,
+            message: "Your turn. Hit or Stand?",
+          }));
+        }
       }, 500);
     } catch (error) {
       console.error("Error hitting:", error);
@@ -296,20 +340,26 @@ export default function BlackjackGame() {
 
           // Check if dealer should draw again, with a delay
           setTimeout(() => {
-            if (currentDealerScore < 17) {
+            // Check if dealer busts
+            if (currentDealerScore > 21) {
+              // Dealer busts - automatically end the game
+              handleGameOutcome("dealer_bust", "Dealer busts! You win!");
+            } else if (currentDealerScore < 17) {
               drawCard(); // Draw another card
             } else {
-              // Dealer is done drawing - show stand message then determine winner
-              setGameState((prev) => ({
-                ...prev,
-                message: `Dealer stands with ${currentDealerScore}`,
-                loading: false,
-              }));
-
-              // Determine winner after a short delay
+              // Dealer is done drawing
               setTimeout(() => {
-                determineWinner(currentDealerScore);
-              }, 1500);
+                // Update message to indicate dealer stands
+                setGameState((prev) => ({
+                  ...prev,
+                  message: `Dealer stands with ${currentDealerScore}`,
+                }));
+
+                // Short delay before determining winner
+                setTimeout(() => {
+                  determineWinner(currentDealerScore);
+                }, 1000);
+              }, 500);
             }
           }, 1000);
         };
@@ -344,15 +394,69 @@ export default function BlackjackGame() {
     const playerScore = gameState.playerScore;
     console.log("Determining winner:", { dealerScore, playerScore });
 
-    // Determine the winner
+    // Case 1: Both bust (both over 21)
+    if (playerScore > 21 && dealerScore > 21) {
+      // Debug the bust comparison
+      console.log("Both bust comparison:", {
+        playerScore,
+        dealerScore,
+        playerLower: playerScore < dealerScore,
+      });
+
+      if (playerScore < dealerScore) {
+        // Player has lower bust score - player wins
+        handleGameOutcome(
+          "player_win",
+          `Both bust! You win with the lower bust (${playerScore} vs dealer's ${dealerScore}).`
+        );
+      } else if (dealerScore < playerScore) {
+        // Dealer has lower bust score - dealer wins
+        handleGameOutcome(
+          "dealer_win",
+          `Both bust! Dealer wins with the lower bust (${dealerScore} vs your ${playerScore}).`
+        );
+      } else {
+        // Exactly same bust score - tie
+        handleGameOutcome(
+          "push",
+          `Unusual tie! Both bust with exactly ${playerScore}.`
+        );
+      }
+      return;
+    }
+
+    // Case 2: Only dealer busts
     if (dealerScore > 21) {
-      handleGameOutcome("dealer_bust", "Dealer busts! You win!");
-    } else if (dealerScore > playerScore) {
-      handleGameOutcome("dealer_win", "Dealer wins!");
+      handleGameOutcome(
+        "dealer_bust",
+        `Dealer busts with ${dealerScore}! You win with ${playerScore}!`
+      );
+      return;
+    }
+
+    // Case 3: Only player busts
+    if (playerScore > 21) {
+      handleGameOutcome(
+        "player_bust",
+        `You bust with ${playerScore}. Dealer wins with ${dealerScore}.`
+      );
+      return;
+    }
+
+    // Case 4: No one busts - normal comparison
+    if (dealerScore > playerScore) {
+      handleGameOutcome(
+        "dealer_win",
+        `Dealer wins with ${dealerScore} to your ${playerScore}.`
+      );
     } else if (dealerScore < playerScore) {
-      handleGameOutcome("player_win", "You win!");
+      handleGameOutcome(
+        "player_win",
+        `You win with ${playerScore} to dealer's ${dealerScore}!`
+      );
     } else {
-      handleGameOutcome("push", "Push! It's a tie.");
+      // Tied scores (not busting)
+      handleGameOutcome("push", `Push! Both have ${playerScore}.`);
     }
   };
 
@@ -492,6 +596,81 @@ export default function BlackjackGame() {
     }));
   };
 
+  // Test the winner determination logic
+  const testWinLogic = () => {
+    // Create test cases with various scores
+    const testCases = [
+      {
+        playerScore: 22,
+        dealerScore: 23,
+        expected: "Player wins with lower bust",
+      },
+      {
+        playerScore: 24,
+        dealerScore: 22,
+        expected: "Dealer wins with lower bust",
+      },
+      {
+        playerScore: 22,
+        dealerScore: 22,
+        expected: "Tie - both bust with same score",
+      },
+      {
+        playerScore: 19,
+        dealerScore: 22,
+        expected: "Player wins - only dealer busts",
+      },
+      {
+        playerScore: 22,
+        dealerScore: 19,
+        expected: "Dealer wins - only player busts",
+      },
+      {
+        playerScore: 19,
+        dealerScore: 20,
+        expected: "Dealer wins - higher score",
+      },
+      {
+        playerScore: 20,
+        dealerScore: 19,
+        expected: "Player wins - higher score",
+      },
+      { playerScore: 19, dealerScore: 19, expected: "Tie - same score" },
+    ];
+
+    // Run the tests
+    console.log("=== TESTING WIN LOGIC ===");
+    testCases.forEach((test) => {
+      console.log(
+        `Test: Player ${test.playerScore} vs Dealer ${test.dealerScore}`
+      );
+      console.log(`Expected: ${test.expected}`);
+      // We don't actually call determineWinner here to avoid side effects
+      console.log("Actual result would be:");
+      if (test.playerScore > 21 && test.dealerScore > 21) {
+        if (test.playerScore < test.dealerScore) {
+          console.log("Player wins with lower bust");
+        } else if (test.dealerScore < test.playerScore) {
+          console.log("Dealer wins with lower bust");
+        } else {
+          console.log("Tie - both bust with same score");
+        }
+      } else if (test.dealerScore > 21) {
+        console.log("Player wins - only dealer busts");
+      } else if (test.playerScore > 21) {
+        console.log("Dealer wins - only player busts");
+      } else if (test.dealerScore > test.playerScore) {
+        console.log("Dealer wins - higher score");
+      } else if (test.dealerScore < test.playerScore) {
+        console.log("Player wins - higher score");
+      } else {
+        console.log("Tie - same score");
+      }
+      console.log("---");
+    });
+    console.log("=== END TESTING ===");
+  };
+
   return (
     <div className="bg-green-800 text-white p-6 rounded-lg shadow-xl max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-center">Blackjack</h1>
@@ -500,8 +679,8 @@ export default function BlackjackGame() {
         <p className="text-center text-lg">{gameState.message}</p>
       </div>
 
-      {/* Test controls toggle button */}
-      {process.env.NODE_ENV === "development" && (
+      {/* Test controls toggle button - only for admins */}
+      {isAdmin && (
         <div className="mb-4 text-right">
           <button
             onClick={() => setShowTestControls((prev) => !prev)}
@@ -512,10 +691,10 @@ export default function BlackjackGame() {
         </div>
       )}
 
-      {/* Test controls panel */}
-      {showTestControls && process.env.NODE_ENV === "development" && (
+      {/* Test controls panel - only for admins */}
+      {showTestControls && isAdmin && (
         <div className="mb-6 p-4 bg-purple-900 rounded-lg">
-          <h3 className="font-bold mb-2">Test Controls</h3>
+          <h3 className="font-bold mb-2">Admin Test Controls</h3>
           <div className="flex flex-wrap gap-2 mb-3">
             <button
               onClick={addCardToPlayer}
@@ -540,7 +719,7 @@ export default function BlackjackGame() {
               Toggle Dealer Card
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             <button
               onClick={() => setCustomGameState({ gameStatus: "player_win" })}
               className="bg-green-600 px-2 py-1 rounded text-xs"
@@ -558,6 +737,14 @@ export default function BlackjackGame() {
               className="bg-gray-600 px-2 py-1 rounded text-xs"
             >
               Force Push
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={testWinLogic}
+              className="bg-purple-600 px-2 py-1 rounded text-xs"
+            >
+              Test Win Logic
             </button>
           </div>
         </div>
@@ -648,8 +835,8 @@ export default function BlackjackGame() {
         </>
       )}
 
-      {/* debugging output - remove in production */}
-      {process.env.NODE_ENV === "development" && (
+      {/* debugging output - only for admins */}
+      {isAdmin && (
         <div className="mt-6 text-xs opacity-50 bg-green-900 p-2 rounded">
           <p>Game Status: {gameState.gameStatus}</p>
           <p>Your Score: {gameState.playerScore}</p>
