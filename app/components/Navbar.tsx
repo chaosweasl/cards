@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<{ wins: number; losses: number } | null>(
     null
   );
@@ -16,32 +16,34 @@ export default function Navbar() {
 
   useEffect(() => {
     async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-      console.log("Current user:", user?.id);
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        setUser(user);
+        console.log("Current user:", user?.id);
 
-      if (user) {
-        // Fetch user stats from profiles table
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("wins, losses")
-          .eq("user_id", user.id)
-          .single();
+        if (user) {
+          // Fetch user stats from profiles table
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("wins, losses")
+            .eq("user_id", user.id)
+            .single();
 
-        console.log("Fetched stats data:", data);
-        if (error) console.log("Error fetching stats:", error);
+          console.log("Fetched stats data:", data);
+          if (error) console.log("Error fetching stats:", error);
 
-        if (data) {
-          setStats(data);
-          console.log("Set stats to:", data);
-        } else if (error && error.code !== "PGRST116") {
-          console.error("Error fetching user stats:", error);
+          if (data) {
+            setStats(data);
+            console.log("Set stats to:", data);
+          } else if (error && error.code !== "PGRST116") {
+            console.error("Error fetching user stats:", error);
+          }
         }
+      } catch (err) {
+        console.error("Error in getUser:", err);
       }
-
-      setLoading(false);
     }
     getUser();
 
@@ -94,50 +96,40 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center space-x-4">
-          {!loading && (
-            <>
-              {user ? (
-                <div className="flex items-center space-x-4">
-                  <Link
-                    href="/profile"
-                    className="text-white hover:text-gray-300"
-                  >
-                    {user.user_metadata?.name || user.email}
-                  </Link>
-                  {stats && (
-                    <div className="flex items-center space-x-2 bg-gray-700 rounded px-3 py-1">
-                      <span className="text-green-400 font-medium">
-                        W: {stats.wins || 0}
-                      </span>
-                      <span className="text-white">|</span>
-                      <span className="text-red-400 font-medium">
-                        L: {stats.losses || 0}
-                      </span>
-                    </div>
-                  )}
-                  <button
-                    onClick={handleSignOut}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
-                  >
-                    Sign Out
-                  </button>
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <Link href="/profile" className="text-white hover:text-gray-300">
+                {user.user_metadata?.name || user.email}
+              </Link>
+              {stats && (
+                <div className="flex items-center space-x-2 bg-gray-700 rounded px-3 py-1">
+                  <span className="text-green-400 font-medium">
+                    W: {stats.wins || 0}
+                  </span>
+                  <span className="text-white">|</span>
+                  <span className="text-red-400 font-medium">
+                    L: {stats.losses || 0}
+                  </span>
                 </div>
-              ) : (
-                <>
-                  <Link
-                    href="/sign-in"
-                    className="text-white hover:text-gray-300"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/sign-up"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded"
-                  >
-                    Sign Up
-                  </Link>
-                </>
               )}
+              <button
+                onClick={handleSignOut}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <>
+              <Link href="/sign-in" className="text-white hover:text-gray-300">
+                Sign In
+              </Link>
+              <Link
+                href="/sign-up"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded"
+              >
+                Sign Up
+              </Link>
             </>
           )}
         </div>

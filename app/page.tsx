@@ -8,16 +8,19 @@ import { useRouter } from "next/navigation";
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
     async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (err) {
+        console.error("Error getting user:", err);
+      }
     }
     getUser();
 
@@ -40,17 +43,28 @@ export default function HomePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="loading loading-spinner loading-lg"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col items-center justify-center">
       <h1 className="text-4xl font-bold mb-8">Welcome to Card Games</h1>
+
+      {loading && (
+        <div className="alert alert-info mb-6 max-w-md">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            className="stroke-current shrink-0 w-6 h-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+          <span>Loading...</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
         <div className="p-8 border rounded-lg shadow-md hover:shadow-lg transition-shadow bg-white flex flex-col items-center text-center">
@@ -61,6 +75,7 @@ export default function HomePage() {
           <button
             onClick={handlePlayBlackjack}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            disabled={loading}
           >
             Play Now
           </button>

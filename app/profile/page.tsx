@@ -9,21 +9,23 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<{ wins: number; losses: number } | null>(
     null
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        setUser(user);
 
-      if (user) {
-        await fetchStats(user.id);
-      } else {
-        setLoading(false);
+        if (user) {
+          await fetchStats(user.id);
+        }
+      } catch (error) {
+        console.error("Error getting user:", error);
       }
     }
 
@@ -31,58 +33,63 @@ export default function ProfilePage() {
   }, []);
 
   async function fetchStats(userId: string) {
-    // Check if profile exists
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    try {
+      setLoading(true);
+      // Check if profile exists
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
 
-    console.log("Profile data:", data);
-    console.log("Profile error:", error);
+      console.log("Profile data:", data);
+      console.log("Profile error:", error);
 
-    if (data) {
-      setStats(data);
-    } else if (error && error.code === "PGRST116") {
-      // No profile found, create one
-      setMessage("Creating new profile...");
-      try {
-        const { data: newProfile, error: insertError } = await supabase
-          .from("profiles")
-          .insert({
-            user_id: userId,
-            wins: 0,
-            losses: 0,
-          })
-          .select();
+      if (data) {
+        setStats(data);
+      } else if (error && error.code === "PGRST116") {
+        // No profile found, create one
+        setMessage("Creating new profile...");
+        try {
+          const { data: newProfile, error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              user_id: userId,
+              wins: 0,
+              losses: 0,
+            })
+            .select();
 
-        console.log("New profile:", newProfile);
-        if (newProfile && newProfile.length > 0) {
-          setStats(newProfile[0]);
-          setMessage("New profile created!");
-        } else {
-          setMessage(
-            "Error creating profile: " +
-              (insertError?.message || "Unknown error")
-          );
+          console.log("New profile:", newProfile);
+          if (newProfile && newProfile.length > 0) {
+            setStats(newProfile[0]);
+            setMessage("New profile created!");
+          } else {
+            setMessage(
+              "Error creating profile: " +
+                (insertError?.message || "Unknown error")
+            );
+          }
+        } catch (err) {
+          console.error("Error creating profile:", err);
+          setMessage("Error creating profile");
         }
-      } catch (err) {
-        console.error("Error creating profile:", err);
-        setMessage("Error creating profile");
+      } else if (error) {
+        setMessage("Error fetching profile: " + error.message);
       }
-    } else if (error) {
-      setMessage("Error fetching profile: " + error.message);
+    } catch (err) {
+      console.error("Error in fetchStats:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   async function updateStats(type: "win" | "loss" | "reset") {
     if (!user || !stats) return;
 
-    setLoading(true);
-
     try {
+      setLoading(true);
+
       if (type === "reset") {
         const { data, error } = await supabase
           .from("profiles")
@@ -122,17 +129,9 @@ export default function ProfilePage() {
     } catch (err) {
       console.error("Error updating stats:", err);
       setMessage("Error updating stats");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-  }
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="loading loading-spinner loading-lg"></div>
-      </div>
-    );
   }
 
   if (!user) {
@@ -179,6 +178,25 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {loading && (
+        <div className="alert alert-warning mb-6">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="stroke-current shrink-0 h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <span>Loading data...</span>
+        </div>
+      )}
+
       <div className="card bg-base-200 shadow-xl w-full max-w-md">
         <div className="card-body">
           <h2 className="card-title">User Information</h2>
@@ -222,18 +240,21 @@ export default function ProfilePage() {
             <button
               onClick={() => updateStats("win")}
               className="btn btn-success"
+              disabled={loading}
             >
               Record Win
             </button>
             <button
               onClick={() => updateStats("loss")}
               className="btn btn-error"
+              disabled={loading}
             >
               Record Loss
             </button>
             <button
               onClick={() => updateStats("reset")}
               className="btn btn-outline"
+              disabled={loading}
             >
               Reset Stats
             </button>
