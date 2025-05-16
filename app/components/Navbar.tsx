@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<{ wins: number; losses: number } | null>(
     null
   );

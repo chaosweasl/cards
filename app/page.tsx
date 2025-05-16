@@ -47,25 +47,6 @@ export default function HomePage() {
     <div className="flex flex-col items-center justify-center">
       <h1 className="text-4xl font-bold mb-8">Welcome to Card Games</h1>
 
-      {loading && (
-        <div className="alert alert-info mb-6 max-w-md">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            className="stroke-current shrink-0 w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          <span>Loading...</span>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
         <div className="p-8 border rounded-lg shadow-md hover:shadow-lg transition-shadow bg-white flex flex-col items-center text-center">
           <h2 className="text-2xl font-semibold mb-4">Blackjack</h2>

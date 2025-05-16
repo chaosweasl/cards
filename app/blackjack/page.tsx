@@ -7,9 +7,7 @@ import { useRouter } from "next/navigation";
 function Blackjack() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [checkingProfile, setCheckingProfile] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -23,7 +21,6 @@ function Blackjack() {
 
         if (user) {
           // Check if profile exists and create one if not
-          setCheckingProfile(true);
           const { data, error } = await supabase
             .from("profiles")
             .select("user_id, wins, losses")
@@ -45,7 +42,6 @@ function Blackjack() {
 
             console.log("New profile created:", newProfile, insertError);
           }
-          setCheckingProfile(false);
         }
 
         if (!user) {
@@ -65,8 +61,6 @@ function Blackjack() {
     console.log(`Updating stats - type: ${type}, user: ${user.id}`);
 
     try {
-      setLoading(true);
-
       if (type === "reset") {
         // Reset stats to 0
         console.log("Resetting stats to 0");
@@ -145,8 +139,6 @@ function Blackjack() {
       router.refresh();
     } catch (err) {
       console.error("Error updating stats:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -163,25 +155,6 @@ function Blackjack() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <h1 className="text-3xl font-bold mb-6">Blackjack</h1>
-
-      {(loading || checkingProfile) && (
-        <div className="alert alert-warning mb-6">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="stroke-current shrink-0 h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-          <span>Loading data...</span>
-        </div>
-      )}
 
       {error && (
         <div className="alert alert-error mb-6">
@@ -210,7 +183,7 @@ function Blackjack() {
             <button
               onClick={handlePlay}
               className="btn btn-primary btn-lg"
-              disabled={!user || loading}
+              disabled={!user}
             >
               Play Game
             </button>
@@ -223,21 +196,18 @@ function Blackjack() {
               <button
                 onClick={() => updateStats("win")}
                 className="btn btn-success"
-                disabled={loading}
               >
                 Record Win
               </button>
               <button
                 onClick={() => updateStats("loss")}
                 className="btn btn-error"
-                disabled={loading}
               >
                 Record Loss
               </button>
               <button
                 onClick={() => updateStats("reset")}
                 className="btn btn-outline"
-                disabled={loading}
               >
                 Reset Stats
               </button>
