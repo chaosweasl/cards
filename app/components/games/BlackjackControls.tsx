@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "@/app/_providers/AuthProvider";
 import Link from "next/link";
 
 export default function BlackjackControls() {

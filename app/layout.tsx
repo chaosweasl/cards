@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/app/components/layout/Navbar";
-import { AuthProvider } from "@/app/context/AuthContext";
+import { AuthProvider } from "@/app/_providers/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description: "A simple card games application",
 };
 
+// This layout uses a Client Component AuthProvider
 export default function RootLayout({
   children,
 }: Readonly<{

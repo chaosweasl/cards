@@ -1,17 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "@/app/_providers/AuthProvider";
 import { useRouter } from "next/navigation";
+import { supabaseService } from "@/app/_lib/supabase-service";
 
 export default function ProfileContent() {
   const router = useRouter();
   const { user, stats, loading, refreshStats } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const supabase = createClient();
 
   async function updateStats(type: "win" | "loss" | "reset") {
     if (!user || !stats) return;
@@ -20,41 +19,31 @@ export default function ProfileContent() {
       setIsUpdating(true);
       setMessage("Updating stats...");
 
+      let success = false;
+
       if (type === "reset") {
-        // Reset stats to 0
-        const { data, error } = await supabase
-          .from("profiles")
-          .update({ wins: 0, losses: 0 })
-          .eq("user_id", user.id)
-          .select();
-
-        if (error) throw error;
-
-        await refreshStats();
-        setMessage("Stats reset successfully!");
+        success = await supabaseService.resetStats(user.id);
+        if (success) {
+          setMessage("Stats reset successfully!");
+        }
+      } else if (type === "win") {
+        success = await supabaseService.recordWin(user.id);
+        if (success) {
+          setMessage("Win recorded successfully!");
+        }
       } else {
-        // Increment win or loss directly
-        const newValue =
-          type === "win" ? (stats.wins || 0) + 1 : (stats.losses || 0) + 1;
-
-        const updateData =
-          type === "win" ? { wins: newValue } : { losses: newValue };
-
-        console.log(`Updating ${type} to ${newValue}`, updateData);
-
-        const { error } = await supabase
-          .from("profiles")
-          .update(updateData)
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        await refreshStats();
-        setMessage(`${type === "win" ? "Win" : "Loss"} recorded successfully!`);
+        success = await supabaseService.recordLoss(user.id);
+        if (success) {
+          setMessage("Loss recorded successfully!");
+        }
       }
 
-      // Force a page refresh to update UI with new stats
-      router.refresh();
+      if (success) {
+        await refreshStats();
+        router.refresh();
+      } else {
+        setMessage(`Error updating stats. Please try again.`);
+      }
     } catch (err: any) {
       console.error("Error updating stats:", err);
       setMessage(`Error updating stats: ${err.message || "Unknown error"}`);

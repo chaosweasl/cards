@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "@/app/_providers/AuthProvider";
 
 export default function NavbarUserSection() {
   const router = useRouter();

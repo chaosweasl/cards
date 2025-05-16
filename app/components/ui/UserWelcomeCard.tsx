@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "@/app/_providers/AuthProvider";
 
 export default function UserWelcomeCard() {
   const { user } = useAuth();

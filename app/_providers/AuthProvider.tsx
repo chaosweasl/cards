@@ -8,16 +8,12 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-
-type User = any;
-type Stats = {
-  wins: number;
-  losses: number;
-} | null;
+import { User } from "@supabase/supabase-js";
+import { UserStats, supabaseService } from "@/app/_lib/supabase-service";
 
 type AuthContextType = {
   user: User | null;
-  stats: Stats;
+  stats: UserStats | null;
   loading: boolean;
   error: string | null;
   isClient: boolean;
@@ -36,7 +32,7 @@ export function useAuth(): AuthContextType {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<Stats>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -50,31 +46,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch user stats from Supabase
   async function fetchStats(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("wins, losses")
-        .eq("user_id", userId)
-        .single();
+      const stats = await supabaseService.getUserStats(userId);
 
-      console.log("Fetched stats data:", data);
-
-      if (data) {
-        setStats(data);
-      } else if (error && error.code === "PGRST116") {
+      if (stats) {
+        setStats(stats);
+      } else {
         // No profile found, create one
         try {
-          const { data: newProfile, error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              user_id: userId,
-              wins: 0,
-              losses: 0,
-            })
-            .select();
+          const success = await supabaseService.updateUserStats(userId, {
+            wins: 0,
+            losses: 0,
+          });
 
-          console.log("New profile created:", newProfile);
-          if (newProfile && newProfile.length > 0) {
-            setStats(newProfile[0]);
+          if (success) {
+            setStats({ wins: 0, losses: 0 });
           }
         } catch (err) {
           console.error("Error creating profile:", err);
@@ -104,7 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getUser();
 
         setUser(user);
-        console.log("Auth context - Current user:", user?.id);
 
         // Fetch stats if user is logged in
         if (user) {
@@ -126,7 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      console.log("Auth state changed, user:", currentUser?.id);
 
       if (currentUser) {
         await fetchStats(currentUser.id);
