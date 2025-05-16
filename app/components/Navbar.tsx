@@ -3,79 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState<{ wins: number; losses: number } | null>(
-    null
-  );
+  const { user, stats, isClient } = useAuth();
   const supabase = createClient();
-
-  useEffect(() => {
-    async function getUser() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUser(user);
-        console.log("Current user:", user?.id);
-
-        if (user) {
-          // Fetch user stats from profiles table
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("wins, losses")
-            .eq("user_id", user.id)
-            .single();
-
-          console.log("Fetched stats data:", data);
-          if (error) console.log("Error fetching stats:", error);
-
-          if (data) {
-            setStats(data);
-            console.log("Set stats to:", data);
-          } else if (error && error.code !== "PGRST116") {
-            console.error("Error fetching user stats:", error);
-          }
-        }
-      } catch (err) {
-        console.error("Error in getUser:", err);
-      }
-    }
-    getUser();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      console.log("Auth state changed, user:", currentUser?.id);
-
-      if (currentUser) {
-        // Fetch user stats when auth state changes
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("wins, losses")
-          .eq("user_id", currentUser.id)
-          .single();
-
-        console.log("Auth change stats:", data);
-        if (error) console.log("Auth change error:", error);
-
-        if (data) {
-          setStats(data);
-        }
-      } else {
-        setStats(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase.auth]);
 
   const handleSignOut = async () => {
     // Sign out on client side first
@@ -85,7 +18,28 @@ export default function Navbar() {
     router.refresh();
   };
 
-  console.log("Rendering Navbar, stats:", stats);
+  // If we haven't yet determined if we're on the client,
+  // return the NavbarSkeleton structure to match the fallback exactly
+  if (!isClient) {
+    return (
+      <nav className="bg-gray-800 p-4">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="text-white font-bold text-xl">Card Games</div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
+              <div className="h-6 bg-gray-600 rounded w-24 animate-pulse"></div>
+              <div className="flex items-center space-x-2 bg-gray-700 rounded px-3 py-1 animate-pulse">
+                <div className="h-4 bg-gray-600 rounded w-12"></div>
+                <span className="text-white">|</span>
+                <div className="h-4 bg-gray-600 rounded w-12"></div>
+              </div>
+              <div className="h-8 bg-gray-600 rounded w-20 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-gray-800 p-4">
@@ -119,7 +73,7 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <>
+            <div className="flex items-center space-x-4">
               <Link href="/sign-in" className="text-white hover:text-gray-300">
                 Sign In
               </Link>
@@ -129,7 +83,7 @@ export default function Navbar() {
               >
                 Sign Up
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>

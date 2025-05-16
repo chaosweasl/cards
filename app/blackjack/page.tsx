@@ -1,59 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../context/AuthContext";
 
 function Blackjack() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, refreshStats } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
-
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUser(user);
-        console.log("Blackjack page - Current user:", user?.id);
-
-        if (user) {
-          // Check if profile exists and create one if not
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("user_id, wins, losses")
-            .eq("user_id", user.id)
-            .single();
-
-          console.log("Profile check result:", data, error);
-
-          if (!data && user) {
-            // Profile doesn't exist, create it
-            console.log(
-              "Profile doesn't exist, creating one for user:",
-              user.id
-            );
-            const { data: newProfile, error: insertError } = await supabase
-              .from("profiles")
-              .insert({ user_id: user.id, wins: 0, losses: 0 })
-              .select();
-
-            console.log("New profile created:", newProfile, insertError);
-          }
-        }
-
-        if (!user) {
-          setError("You must be signed in to play Blackjack");
-        }
-      } catch (err) {
-        console.error("Error checking auth:", err);
-      }
-    }
-
-    checkAuth();
-  }, [supabase.auth]);
 
   const updateStats = async (type: "win" | "loss" | "reset") => {
     if (!user) return;
@@ -126,16 +82,10 @@ function Blackjack() {
         }
       }
 
-      // Verify the current stats after update
-      const { data: currentStats } = await supabase
-        .from("profiles")
-        .select("wins, losses")
-        .eq("user_id", user.id)
-        .single();
+      // Refresh stats in the global context
+      await refreshStats();
 
-      console.log("Current stats after update:", currentStats);
-
-      // Force refresh of the page to update navbar stats
+      // Force refresh of the page
       router.refresh();
     } catch (err) {
       console.error("Error updating stats:", err);

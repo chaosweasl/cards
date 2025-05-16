@@ -1,94 +1,20 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { useAuth } from "../context/AuthContext";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState<{ wins: number; losses: number } | null>(
-    null
-  );
-  const [loading, setLoading] = useState(false);
+  const { user, stats, loading, refreshStats } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
   const supabase = createClient();
-
-  useEffect(() => {
-    async function getUser() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUser(user);
-
-        if (user) {
-          await fetchStats(user.id);
-        }
-      } catch (error) {
-        console.error("Error getting user:", error);
-      }
-    }
-
-    getUser();
-  }, []);
-
-  async function fetchStats(userId: string) {
-    try {
-      setLoading(true);
-      // Check if profile exists
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-
-      console.log("Profile data:", data);
-      console.log("Profile error:", error);
-
-      if (data) {
-        setStats(data);
-      } else if (error && error.code === "PGRST116") {
-        // No profile found, create one
-        setMessage("Creating new profile...");
-        try {
-          const { data: newProfile, error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              user_id: userId,
-              wins: 0,
-              losses: 0,
-            })
-            .select();
-
-          console.log("New profile:", newProfile);
-          if (newProfile && newProfile.length > 0) {
-            setStats(newProfile[0]);
-            setMessage("New profile created!");
-          } else {
-            setMessage(
-              "Error creating profile: " +
-                (insertError?.message || "Unknown error")
-            );
-          }
-        } catch (err) {
-          console.error("Error creating profile:", err);
-          setMessage("Error creating profile");
-        }
-      } else if (error) {
-        setMessage("Error fetching profile: " + error.message);
-      }
-    } catch (err) {
-      console.error("Error in fetchStats:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function updateStats(type: "win" | "loss" | "reset") {
     if (!user || !stats) return;
 
     try {
-      setLoading(true);
+      setMessage("Updating stats...");
 
       if (type === "reset") {
         const { data, error } = await supabase
@@ -98,7 +24,7 @@ export default function ProfilePage() {
           .select();
 
         if (data && data.length > 0) {
-          setStats(data[0]);
+          await refreshStats();
           setMessage("Stats reset successfully!");
         } else if (error) {
           setMessage("Error resetting stats: " + error.message);
@@ -118,7 +44,7 @@ export default function ProfilePage() {
           .select();
 
         if (data && data.length > 0) {
-          setStats(data[0]);
+          await refreshStats();
           setMessage(
             `${type === "win" ? "Win" : "Loss"} recorded successfully!`
           );
@@ -129,9 +55,11 @@ export default function ProfilePage() {
     } catch (err) {
       console.error("Error updating stats:", err);
       setMessage("Error updating stats");
-    } finally {
-      setLoading(false);
     }
+  }
+
+  if (loading) {
+    return null; // Will show loading skeleton from loading.tsx
   }
 
   if (!user) {
@@ -221,21 +149,18 @@ export default function ProfilePage() {
             <button
               onClick={() => updateStats("win")}
               className="btn btn-success"
-              disabled={loading}
             >
               Record Win
             </button>
             <button
               onClick={() => updateStats("loss")}
               className="btn btn-error"
-              disabled={loading}
             >
               Record Loss
             </button>
             <button
               onClick={() => updateStats("reset")}
               className="btn btn-outline"
-              disabled={loading}
             >
               Reset Stats
             </button>
