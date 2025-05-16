@@ -1,96 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import Link from "next/link";
 
 export default function BlackjackControls() {
   const router = useRouter();
-  const { user, refreshStats } = useAuth();
+  const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
-
-  const updateStats = async (type: "win" | "loss" | "reset") => {
-    if (!user) return;
-
-    console.log(`Updating stats - type: ${type}, user: ${user.id}`);
-
-    try {
-      if (type === "reset") {
-        // Reset stats to 0
-        console.log("Resetting stats to 0");
-        const { data, error } = await supabase
-          .from("profiles")
-          .update({ wins: 0, losses: 0 })
-          .eq("user_id", user.id)
-          .select();
-
-        console.log("Reset result:", data, error);
-      } else {
-        // Increment win or loss
-        const field = type === "win" ? "wins" : "losses";
-        console.log(`Incrementing ${field}`);
-
-        // First check if profile exists
-        const { data: profileCheck, error: checkError } = await supabase
-          .from("profiles")
-          .select("user_id, wins, losses")
-          .eq("user_id", user.id)
-          .single();
-
-        console.log("Profile check before update:", profileCheck, checkError);
-
-        if (profileCheck) {
-          // Update existing profile
-          console.log("Profile exists, updating it");
-          try {
-            // Direct increment without RPC
-            const newValue =
-              type === "win"
-                ? (profileCheck.wins || 0) + 1
-                : (profileCheck.losses || 0) + 1;
-
-            const updateData =
-              type === "win" ? { wins: newValue } : { losses: newValue };
-
-            console.log(`Setting ${field} to ${newValue}`);
-
-            const { data: updateResult, error: updateError } = await supabase
-              .from("profiles")
-              .update(updateData)
-              .eq("user_id", user.id)
-              .select();
-
-            console.log("Update result:", updateResult, updateError);
-          } catch (rpcError) {
-            console.error("Error with update:", rpcError);
-          }
-        } else {
-          // Insert new profile with initial stats
-          console.log("Profile doesn't exist, creating one");
-          const { data: insertResult, error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              user_id: user.id,
-              wins: type === "win" ? 1 : 0,
-              losses: type === "loss" ? 1 : 0,
-            })
-            .select();
-
-          console.log("Insert result:", insertResult, insertError);
-        }
-      }
-
-      // Refresh stats in the global context
-      await refreshStats();
-
-      // Force refresh of the page
-      router.refresh();
-    } catch (err) {
-      console.error("Error updating stats:", err);
-    }
-  };
 
   const handlePlay = () => {
     if (!user) {
@@ -137,28 +55,26 @@ export default function BlackjackControls() {
             </button>
           </div>
 
-          {user && <div className="divider">Stats Management</div>}
+          {!user && (
+            <div className="mt-4 text-center">
+              <p className="mb-2">You need to be signed in to play Blackjack</p>
+              <div className="flex justify-center gap-2">
+                <Link href="/sign-in" className="btn btn-sm">
+                  Sign In
+                </Link>
+                <Link href="/sign-up" className="btn btn-sm">
+                  Sign Up
+                </Link>
+              </div>
+            </div>
+          )}
 
           {user && (
-            <div className="flex flex-wrap justify-center gap-4 mt-4">
-              <button
-                onClick={() => updateStats("win")}
-                className="btn btn-success"
-              >
-                Record Win
-              </button>
-              <button
-                onClick={() => updateStats("loss")}
-                className="btn btn-error"
-              >
-                Record Loss
-              </button>
-              <button
-                onClick={() => updateStats("reset")}
-                className="btn btn-outline"
-              >
-                Reset Stats
-              </button>
+            <div className="mt-4 text-center">
+              <p>Track your wins and losses in your profile</p>
+              <Link href="/profile" className="btn btn-sm btn-outline mt-2">
+                Go to Profile
+              </Link>
             </div>
           )}
         </div>

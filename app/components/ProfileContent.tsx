@@ -4,57 +4,62 @@ import React, { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function ProfileContent() {
+  const router = useRouter();
   const { user, stats, loading, refreshStats } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   const supabase = createClient();
 
   async function updateStats(type: "win" | "loss" | "reset") {
     if (!user || !stats) return;
 
     try {
+      setIsUpdating(true);
       setMessage("Updating stats...");
 
       if (type === "reset") {
+        // Reset stats to 0
         const { data, error } = await supabase
           .from("profiles")
           .update({ wins: 0, losses: 0 })
           .eq("user_id", user.id)
           .select();
 
-        if (data && data.length > 0) {
-          await refreshStats();
-          setMessage("Stats reset successfully!");
-        } else if (error) {
-          setMessage("Error resetting stats: " + error.message);
-        }
+        if (error) throw error;
+
+        await refreshStats();
+        setMessage("Stats reset successfully!");
       } else {
         // Increment win or loss directly
-        const newStats = {
-          ...stats,
-          wins: type === "win" ? (stats.wins || 0) + 1 : stats.wins,
-          losses: type === "loss" ? (stats.losses || 0) + 1 : stats.losses,
-        };
+        const newValue =
+          type === "win" ? (stats.wins || 0) + 1 : (stats.losses || 0) + 1;
 
-        const { data, error } = await supabase
+        const updateData =
+          type === "win" ? { wins: newValue } : { losses: newValue };
+
+        console.log(`Updating ${type} to ${newValue}`, updateData);
+
+        const { error } = await supabase
           .from("profiles")
-          .update(newStats)
-          .eq("user_id", user.id)
-          .select();
+          .update(updateData)
+          .eq("user_id", user.id);
 
-        if (data && data.length > 0) {
-          await refreshStats();
-          setMessage(
-            `${type === "win" ? "Win" : "Loss"} recorded successfully!`
-          );
-        } else if (error) {
-          setMessage(`Error recording ${type}: ` + error.message);
-        }
+        if (error) throw error;
+
+        await refreshStats();
+        setMessage(`${type === "win" ? "Win" : "Loss"} recorded successfully!`);
       }
-    } catch (err) {
+
+      // Force a page refresh to update UI with new stats
+      router.refresh();
+    } catch (err: any) {
       console.error("Error updating stats:", err);
-      setMessage("Error updating stats");
+      setMessage(`Error updating stats: ${err.message || "Unknown error"}`);
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -84,7 +89,11 @@ export default function ProfileContent() {
   return (
     <>
       {message && (
-        <div className="alert alert-info mb-6">
+        <div
+          className={`alert ${
+            message.includes("Error") ? "alert-error" : "alert-info"
+          } mb-6`}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -144,21 +153,24 @@ export default function ProfileContent() {
           <div className="flex flex-wrap justify-center gap-4 mt-4">
             <button
               onClick={() => updateStats("win")}
+              disabled={isUpdating}
               className="btn btn-success"
             >
-              Record Win
+              {isUpdating ? "Recording..." : "Record Win"}
             </button>
             <button
               onClick={() => updateStats("loss")}
+              disabled={isUpdating}
               className="btn btn-error"
             >
-              Record Loss
+              {isUpdating ? "Recording..." : "Record Loss"}
             </button>
             <button
               onClick={() => updateStats("reset")}
+              disabled={isUpdating}
               className="btn btn-outline"
             >
-              Reset Stats
+              {isUpdating ? "Resetting..." : "Reset Stats"}
             </button>
           </div>
 
