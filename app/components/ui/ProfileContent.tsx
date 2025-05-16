@@ -4,53 +4,11 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/_providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { supabaseService } from "@/app/_lib/supabase-service";
 
 export default function ProfileContent() {
   const router = useRouter();
-  const { user, stats, loading, refreshStats } = useAuth();
+  const { user, stats, loading } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  async function updateStats(type: "win" | "loss" | "reset") {
-    if (!user || !stats) return;
-
-    try {
-      setIsUpdating(true);
-      setMessage("Updating stats...");
-
-      let success = false;
-
-      if (type === "reset") {
-        success = await supabaseService.resetStats(user.id);
-        if (success) {
-          setMessage("Stats reset successfully!");
-        }
-      } else if (type === "win") {
-        success = await supabaseService.recordWin(user.id);
-        if (success) {
-          setMessage("Win recorded successfully!");
-        }
-      } else {
-        success = await supabaseService.recordLoss(user.id);
-        if (success) {
-          setMessage("Loss recorded successfully!");
-        }
-      }
-
-      if (success) {
-        await refreshStats();
-        router.refresh();
-      } else {
-        setMessage(`Error updating stats. Please try again.`);
-      }
-    } catch (err: any) {
-      console.error("Error updating stats:", err);
-      setMessage(`Error updating stats: ${err.message || "Unknown error"}`);
-    } finally {
-      setIsUpdating(false);
-    }
-  }
 
   if (loading) {
     return null; // Will show loading skeleton from loading.tsx
@@ -135,32 +93,6 @@ export default function ProfileContent() {
                   : "N/A"}
               </div>
             </div>
-          </div>
-
-          <div className="divider">Manage Stats</div>
-
-          <div className="flex flex-wrap justify-center gap-4 mt-4">
-            <button
-              onClick={() => updateStats("win")}
-              disabled={isUpdating}
-              className="btn btn-success"
-            >
-              {isUpdating ? "Recording..." : "Record Win"}
-            </button>
-            <button
-              onClick={() => updateStats("loss")}
-              disabled={isUpdating}
-              className="btn btn-error"
-            >
-              {isUpdating ? "Recording..." : "Record Loss"}
-            </button>
-            <button
-              onClick={() => updateStats("reset")}
-              disabled={isUpdating}
-              className="btn btn-outline"
-            >
-              {isUpdating ? "Resetting..." : "Reset Stats"}
-            </button>
           </div>
 
           <div className="card-actions justify-end mt-6">
