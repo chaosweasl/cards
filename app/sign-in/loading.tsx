@@ -1,10 +1,10 @@
-import AuthForm from "../components/AuthForm";
 import AuthFormContainer from "../components/AuthFormContainer";
+import AuthSkeleton from "../components/AuthSkeleton";
 
-export default function SignInPage() {
+export default function SignInLoading() {
   return (
     <AuthFormContainer>
-      <AuthForm mode="signin" />
+      <AuthSkeleton />
     </AuthFormContainer>
   );
 }
