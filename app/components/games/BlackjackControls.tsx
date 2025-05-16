@@ -4,10 +4,12 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/_providers/AuthProvider";
 import Link from "next/link";
+import BlackjackGame from "./BlackjackGame";
 
 export default function BlackjackControls() {
   const router = useRouter();
   const { user } = useAuth();
+  const [showGame, setShowGame] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handlePlay = () => {
@@ -16,9 +18,13 @@ export default function BlackjackControls() {
       return;
     }
 
-    // Here you would start the game
+    setShowGame(true);
     setError(null);
   };
+
+  if (showGame) {
+    return <BlackjackGame />;
+  }
 
   return (
     <>

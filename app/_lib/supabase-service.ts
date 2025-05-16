@@ -4,18 +4,43 @@ import { createClient } from "@/utils/supabase/client";
 import { User } from "@supabase/supabase-js";
 
 export interface UserStats {
+  user_id: string;
   wins: number;
   losses: number;
+  created_at?: string;
 }
 
 export class SupabaseService {
   private supabase = createClient();
 
+  // Expose a getter for the supabase client
+  getClient() {
+    return this.supabase;
+  }
+
+  async getAllUserStats(): Promise<UserStats[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from("profiles")
+        .select("user_id, wins, losses, created_at");
+
+      if (error) {
+        console.error("Error fetching all users stats:", error);
+        return [];
+      }
+
+      return data as UserStats[];
+    } catch (err) {
+      console.error("Unexpected error fetching all users stats:", err);
+      return [];
+    }
+  }
+
   async getUserStats(userId: string): Promise<UserStats | null> {
     try {
       const { data, error } = await this.supabase
         .from("profiles")
-        .select("wins, losses")
+        .select("user_id, wins, losses")
         .eq("user_id", userId)
         .single();
 
