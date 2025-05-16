@@ -1,4 +1,4 @@
-import ProfileContent from "../components/ProfileContent";
+import ProfileContent from "@/app/components/ui/ProfileContent";
 
 export default function ProfilePage() {
   return (

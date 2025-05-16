@@ -1,6 +1,6 @@
-import GameCard from "./components/GameCard";
-import UserWelcomeCard from "./components/UserWelcomeCard";
-import AuthModal from "./components/AuthModal";
+import GameCard from "@/app/components/ui/GameCard";
+import UserWelcomeCard from "@/app/components/ui/UserWelcomeCard";
+import AuthModal from "@/app/components/auth/AuthModal";
 
 export default function HomePage() {
   return (

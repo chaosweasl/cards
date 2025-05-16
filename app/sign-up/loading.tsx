@@ -1,5 +1,5 @@
-import AuthFormContainer from "../components/AuthFormContainer";
-import AuthSkeleton from "../components/AuthSkeleton";
+import AuthFormContainer from "@/app/components/auth/AuthFormContainer";
+import AuthSkeleton from "@/app/components/auth/AuthSkeleton";
 
 export default function SignUpLoading() {
   return (

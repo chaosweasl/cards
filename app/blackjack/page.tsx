@@ -1,4 +1,4 @@
-import BlackjackControls from "../components/BlackjackControls";
+import BlackjackControls from "@/app/components/games/BlackjackControls";
 
 export default function BlackjackPage() {
   return (
