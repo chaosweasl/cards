@@ -46,28 +46,9 @@ const initialState: GameState = {
 };
 
 export default function BlackjackGame() {
-  const { user, refreshStats } = useAuth();
+  const { user, refreshStats, stats } = useAuth();
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [dealingAnimation, setDealingAnimation] = useState(false);
-  const [showTestControls, setShowTestControls] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Check if user is admin
-  useEffect(() => {
-    if (!user) return;
-
-    const checkAdminStatus = async () => {
-      try {
-        const response = await fetch("/api/check-admin");
-        const data = await response.json();
-        setIsAdmin(data.isAdmin);
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user]);
 
   // Handle the dealer's turn after the player stands
   useEffect(() => {
@@ -483,16 +464,24 @@ export default function BlackjackGame() {
 
       // Record win/loss in database
       try {
+        console.log("Recording outcome for user:", user.id);
         if (outcome === "player_win" || outcome === "dealer_bust") {
-          await supabaseService.recordWin(user.id);
+          const result = await supabaseService.recordWin(user.id);
+          console.log("Win recorded:", result);
+
+          // Make sure to refresh stats immediately
+          await refreshStats();
+          console.log("Stats refreshed, current wins:", stats?.wins);
         } else if (outcome === "dealer_win" || outcome === "player_bust") {
-          await supabaseService.recordLoss(user.id);
+          const result = await supabaseService.recordLoss(user.id);
+          console.log("Loss recorded:", result);
+
+          // Make sure to refresh stats immediately
+          await refreshStats();
+          console.log("Stats refreshed, current losses:", stats?.losses);
         }
-        // Refresh stats after database update
-        refreshStats();
       } catch (error) {
         console.error("Error recording game outcome in database:", error);
-        // Game ending still succeeded even if stats recording failed
       }
     } catch (error) {
       console.error("Error updating game outcome state:", error);
@@ -518,6 +507,7 @@ export default function BlackjackGame() {
             alt="Card back"
             className="object-cover"
             fill
+            sizes="(max-width: 768px) 100vw, 96px"
           />
         </div>
       );
@@ -538,137 +528,10 @@ export default function BlackjackGame() {
           alt={`${card.value} of ${card.suit}`}
           className="object-cover"
           fill
+          sizes="(max-width: 768px) 100vw, 96px"
         />
       </div>
     );
-  };
-
-  // Testing functions
-  const addCardToPlayer = async () => {
-    if (!gameState.deckId) return;
-
-    try {
-      const response = await fetch(
-        `https://deckofcardsapi.com/api/deck/${gameState.deckId}/draw/?count=1`
-      );
-      const data = await response.json();
-
-      if (!data.success) return;
-
-      const newPlayerCards = [...gameState.playerCards, data.cards[0]];
-      setGameState((prev) => ({
-        ...prev,
-        playerCards: newPlayerCards,
-        playerScore: calculateScore(newPlayerCards),
-      }));
-    } catch (error) {
-      console.error("Test error:", error);
-    }
-  };
-
-  const addCardToDealer = async () => {
-    if (!gameState.deckId) return;
-
-    try {
-      const response = await fetch(
-        `https://deckofcardsapi.com/api/deck/${gameState.deckId}/draw/?count=1`
-      );
-      const data = await response.json();
-
-      if (!data.success) return;
-
-      const newDealerCards = [...gameState.dealerCards, data.cards[0]];
-      setGameState((prev) => ({
-        ...prev,
-        dealerCards: newDealerCards,
-        dealerScore: calculateScore(newDealerCards),
-        revealDealerCard: true,
-      }));
-    } catch (error) {
-      console.error("Test error:", error);
-    }
-  };
-
-  const setCustomGameState = (newState: Partial<GameState>) => {
-    setGameState((prev) => ({
-      ...prev,
-      ...newState,
-    }));
-  };
-
-  // Test the winner determination logic
-  const testWinLogic = () => {
-    // Create test cases with various scores
-    const testCases = [
-      {
-        playerScore: 22,
-        dealerScore: 23,
-        expected: "Player wins with lower bust",
-      },
-      {
-        playerScore: 24,
-        dealerScore: 22,
-        expected: "Dealer wins with lower bust",
-      },
-      {
-        playerScore: 22,
-        dealerScore: 22,
-        expected: "Tie - both bust with same score",
-      },
-      {
-        playerScore: 19,
-        dealerScore: 22,
-        expected: "Player wins - only dealer busts",
-      },
-      {
-        playerScore: 22,
-        dealerScore: 19,
-        expected: "Dealer wins - only player busts",
-      },
-      {
-        playerScore: 19,
-        dealerScore: 20,
-        expected: "Dealer wins - higher score",
-      },
-      {
-        playerScore: 20,
-        dealerScore: 19,
-        expected: "Player wins - higher score",
-      },
-      { playerScore: 19, dealerScore: 19, expected: "Tie - same score" },
-    ];
-
-    // Run the tests
-    console.log("=== TESTING WIN LOGIC ===");
-    testCases.forEach((test) => {
-      console.log(
-        `Test: Player ${test.playerScore} vs Dealer ${test.dealerScore}`
-      );
-      console.log(`Expected: ${test.expected}`);
-      // We don't actually call determineWinner here to avoid side effects
-      console.log("Actual result would be:");
-      if (test.playerScore > 21 && test.dealerScore > 21) {
-        if (test.playerScore < test.dealerScore) {
-          console.log("Player wins with lower bust");
-        } else if (test.dealerScore < test.playerScore) {
-          console.log("Dealer wins with lower bust");
-        } else {
-          console.log("Tie - both bust with same score");
-        }
-      } else if (test.dealerScore > 21) {
-        console.log("Player wins - only dealer busts");
-      } else if (test.playerScore > 21) {
-        console.log("Dealer wins - only player busts");
-      } else if (test.dealerScore > test.playerScore) {
-        console.log("Dealer wins - higher score");
-      } else if (test.dealerScore < test.playerScore) {
-        console.log("Player wins - higher score");
-      } else {
-        console.log("Tie - same score");
-      }
-      console.log("---");
-    });
-    console.log("=== END TESTING ===");
   };
 
   return (
@@ -678,77 +541,6 @@ export default function BlackjackGame() {
       <div className="mb-6 p-4 bg-green-900 rounded-lg">
         <p className="text-center text-lg">{gameState.message}</p>
       </div>
-
-      {/* Test controls toggle button - only for admins */}
-      {isAdmin && (
-        <div className="mb-4 text-right">
-          <button
-            onClick={() => setShowTestControls((prev) => !prev)}
-            className="text-xs bg-purple-700 hover:bg-purple-800 px-2 py-1 rounded"
-          >
-            {showTestControls ? "Hide Test Controls" : "Show Test Controls"}
-          </button>
-        </div>
-      )}
-
-      {/* Test controls panel - only for admins */}
-      {showTestControls && isAdmin && (
-        <div className="mb-6 p-4 bg-purple-900 rounded-lg">
-          <h3 className="font-bold mb-2">Admin Test Controls</h3>
-          <div className="flex flex-wrap gap-2 mb-3">
-            <button
-              onClick={addCardToPlayer}
-              className="bg-blue-600 px-2 py-1 rounded text-xs"
-            >
-              Add Card to Player
-            </button>
-            <button
-              onClick={addCardToDealer}
-              className="bg-red-600 px-2 py-1 rounded text-xs"
-            >
-              Add Card to Dealer
-            </button>
-            <button
-              onClick={() =>
-                setCustomGameState({
-                  revealDealerCard: !gameState.revealDealerCard,
-                })
-              }
-              className="bg-yellow-600 px-2 py-1 rounded text-xs"
-            >
-              Toggle Dealer Card
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-3">
-            <button
-              onClick={() => setCustomGameState({ gameStatus: "player_win" })}
-              className="bg-green-600 px-2 py-1 rounded text-xs"
-            >
-              Force Player Win
-            </button>
-            <button
-              onClick={() => setCustomGameState({ gameStatus: "dealer_win" })}
-              className="bg-orange-600 px-2 py-1 rounded text-xs"
-            >
-              Force Dealer Win
-            </button>
-            <button
-              onClick={() => setCustomGameState({ gameStatus: "push" })}
-              className="bg-gray-600 px-2 py-1 rounded text-xs"
-            >
-              Force Push
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={testWinLogic}
-              className="bg-purple-600 px-2 py-1 rounded text-xs"
-            >
-              Test Win Logic
-            </button>
-          </div>
-        </div>
-      )}
 
       {gameState.gameStatus === "idle" ? (
         <div className="flex justify-center mb-8">
@@ -833,15 +625,6 @@ export default function BlackjackGame() {
             </div>
           )}
         </>
-      )}
-
-      {/* debugging output - only for admins */}
-      {isAdmin && (
-        <div className="mt-6 text-xs opacity-50 bg-green-900 p-2 rounded">
-          <p>Game Status: {gameState.gameStatus}</p>
-          <p>Your Score: {gameState.playerScore}</p>
-          <p>Dealer Score: {gameState.dealerScore}</p>
-        </div>
       )}
 
       <style jsx global>{`

@@ -56,6 +56,32 @@ export class SupabaseService {
     }
   }
 
+  async createUserProfile(
+    userId: string,
+    initialStats: Partial<UserStats> = {}
+  ): Promise<boolean> {
+    try {
+      const profile = {
+        user_id: userId,
+        wins: 0,
+        losses: 0,
+        ...initialStats,
+      };
+
+      const { error } = await this.supabase.from("profiles").insert([profile]);
+
+      if (error) {
+        console.error("Error creating user profile:", error);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Unexpected error creating user profile:", err);
+      return false;
+    }
+  }
+
   async updateUserStats(
     userId: string,
     stats: Partial<UserStats>
@@ -79,17 +105,45 @@ export class SupabaseService {
   }
 
   async recordWin(userId: string): Promise<boolean> {
-    const stats = await this.getUserStats(userId);
-    if (!stats) return false;
+    try {
+      // Try to get existing stats
+      const stats = await this.getUserStats(userId);
 
-    return this.updateUserStats(userId, { wins: (stats.wins || 0) + 1 });
+      // If no stats exist, create a new profile with 1 win
+      if (!stats) {
+        console.log("Creating new profile with win for user:", userId);
+        return await this.createUserProfile(userId, { wins: 1 });
+      }
+
+      // Update existing profile
+      return await this.updateUserStats(userId, {
+        wins: (stats.wins || 0) + 1,
+      });
+    } catch (error) {
+      console.error("Error in recordWin:", error);
+      return false;
+    }
   }
 
   async recordLoss(userId: string): Promise<boolean> {
-    const stats = await this.getUserStats(userId);
-    if (!stats) return false;
+    try {
+      // Try to get existing stats
+      const stats = await this.getUserStats(userId);
 
-    return this.updateUserStats(userId, { losses: (stats.losses || 0) + 1 });
+      // If no stats exist, create a new profile with 1 loss
+      if (!stats) {
+        console.log("Creating new profile with loss for user:", userId);
+        return await this.createUserProfile(userId, { losses: 1 });
+      }
+
+      // Update existing profile
+      return await this.updateUserStats(userId, {
+        losses: (stats.losses || 0) + 1,
+      });
+    } catch (error) {
+      console.error("Error in recordLoss:", error);
+      return false;
+    }
   }
 
   async resetStats(userId: string): Promise<boolean> {
