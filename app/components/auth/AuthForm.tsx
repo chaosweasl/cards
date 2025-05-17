@@ -56,29 +56,27 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const isDisabled = loading || isPending;
 
   return (
-    <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-6 text-center">{title}</h1>
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-      <button
-        onClick={handleGithubSignIn}
-        disabled={isDisabled}
-        className="w-full flex justify-center items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Github size={18} />
-        {loading ? "Signing in..." : "Sign in with GitHub"}
-      </button>
-      {isSignIn && (
-        <p className="text-center text-gray-600">
-          Don't have an account?{" "}
-          <Link href="/sign-up" className="text-blue-600 hover:underline">
-            Sign up
-          </Link>
-        </p>
-      )}
+    <div className="card w-full max-w-md bg-base-100 shadow-xl">
+      <div className="card-body">
+        <h1 className="card-title text-2xl justify-center">{title}</h1>
+        {error && <div className="alert alert-error">{error}</div>}
+        <button
+          onClick={handleGithubSignIn}
+          disabled={isDisabled}
+          className="btn btn-neutral w-full gap-2"
+        >
+          <Github size={18} />
+          {loading ? "Signing in..." : "Sign in with GitHub"}
+        </button>
+        {isSignIn && (
+          <p className="text-center text-base-content/70 mt-2">
+            Don't have an account?{" "}
+            <Link href="/sign-up" className="link link-primary">
+              Sign up
+            </Link>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

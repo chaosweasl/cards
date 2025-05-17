@@ -22,15 +22,15 @@ export default function NavbarUserSection() {
   // render a loading skeleton
   if (!isClient) {
     return (
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-4">
-          <div className="h-6 bg-gray-600 rounded w-24 animate-pulse"></div>
-          <div className="flex items-center space-x-2 bg-gray-700 rounded px-3 py-1 animate-pulse">
-            <div className="h-4 bg-gray-600 rounded w-12"></div>
-            <span className="text-white">|</span>
-            <div className="h-4 bg-gray-600 rounded w-12"></div>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-6 bg-neutral-focus rounded w-24 animate-pulse"></div>
+          <div className="flex items-center gap-2 bg-neutral-focus rounded px-3 py-1 animate-pulse">
+            <div className="h-4 bg-neutral-focus rounded w-12"></div>
+            <span className="text-neutral-content">|</span>
+            <div className="h-4 bg-neutral-focus rounded w-12"></div>
           </div>
-          <div className="h-8 bg-gray-600 rounded w-20 animate-pulse"></div>
+          <div className="h-8 bg-neutral-focus rounded w-20 animate-pulse"></div>
         </div>
       </div>
     );
@@ -38,25 +38,22 @@ export default function NavbarUserSection() {
 
   if (user) {
     return (
-      <div className="flex items-center space-x-4">
-        <Link href="/profile" className="text-white hover:text-gray-300">
+      <div className="flex items-center gap-4 ml-auto">
+        <Link href="/profile" className="link link-hover text-neutral-content">
           {user.user_metadata?.name || user.email}
         </Link>
         {stats && (
-          <div className="flex items-center space-x-2 bg-gray-700 rounded px-3 py-1">
-            <span className="text-green-400 font-medium">
+          <div className="flex items-center gap-2 bg-neutral-focus rounded px-3 py-1">
+            <span className="text-success font-medium">
               W: {stats.wins || 0}
             </span>
-            <span className="text-white">|</span>
-            <span className="text-red-400 font-medium">
+            <span className="text-neutral-content">|</span>
+            <span className="text-error font-medium">
               L: {stats.losses || 0}
             </span>
           </div>
         )}
-        <button
-          onClick={handleSignOut}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
-        >
+        <button onClick={handleSignOut} className="btn btn-error btn-sm">
           Sign Out
         </button>
       </div>
@@ -64,14 +61,11 @@ export default function NavbarUserSection() {
   }
 
   return (
-    <div className="flex items-center space-x-4">
-      <Link href="/sign-in" className="text-white hover:text-gray-300">
+    <div className="flex items-center gap-4 ml-auto">
+      <Link href="/sign-in" className="link link-hover text-neutral-content">
         Sign In
       </Link>
-      <Link
-        href="/sign-up"
-        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded"
-      >
+      <Link href="/sign-up" className="btn btn-primary btn-sm">
         Sign Up
       </Link>
     </div>

@@ -9,17 +9,20 @@ export default function AuthModal() {
 
   return (
     <div id="auth-modal" className="modal">
-      <div className="modal-box">
+      <div className="modal-box bg-base-200">
         <h3 className="font-bold text-lg">Authentication Required</h3>
         <p className="py-4">You need to be signed in to play Blackjack.</p>
         <div className="modal-action">
           <Link href="/sign-in" className="btn btn-primary">
             Sign In
           </Link>
-          <Link href="/sign-up" className="btn">
+          <Link href="/sign-up" className="btn btn-secondary">
             Sign Up
           </Link>
-          <button className="btn btn-outline" onClick={handleCloseModal}>
+          <button
+            className="btn btn-outline btn-neutral"
+            onClick={handleCloseModal}
+          >
             Cancel
           </button>
         </div>
