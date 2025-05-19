@@ -65,9 +65,9 @@ export default function NavbarUserSection() {
       <Link href="/sign-in" className="link link-hover text-neutral-content">
         Sign In
       </Link>
-      <Link href="/sign-up" className="btn btn-primary btn-sm">
+      {/* <Link href="/sign-up" className="btn btn-primary btn-sm">
         Sign Up
-      </Link>
+      </Link> */}
     </div>
   );
 }
