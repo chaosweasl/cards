@@ -35,7 +35,10 @@ export default function UserWelcomeCard() {
             View Profile
           </Link>
         </div>
-        <p className="text-base-content/70 mt-2">More games coming soon!</p>
+        <p className="text-base-content/70 mt-2">
+          <span className="line-through">More games coming soon!</span>{" "}
+          (probably not)
+        </p>
       </div>
     </div>
   );
